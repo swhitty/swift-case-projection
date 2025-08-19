@@ -57,18 +57,19 @@ enum CaseProjectionMacro: ExtensionMacro {
 
         let casesDecl = try ExtensionDeclSyntax(
             #"""
-            \#(raw: accessControl.syntax)extension \#(type.trimmed) {
-                struct Cases {
+            extension \#(type.trimmed): CaseProjecting {
+            \#(raw: accessControl.syntax)struct Cases: CaseProjection {
             \#(raw: cases.map(\.extractCaseSyntax).joined(separator: "\n\n"))
             
-            fileprivate let base: \#(raw: typeDecl.fullyQualifiedName)
-                }
+            \#(raw: accessControl.syntax)init(_ base: \#(raw: typeDecl.fullyQualifiedName)?) {
+                self.base = base
+            }
+            \#(raw: accessControl.syntax)var base: \#(raw: typeDecl.fullyQualifiedName)?
+            }
             
-                var cases: Cases {
-                    Cases(base: self)
-                }
-            
-                func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool { cases[keyPath: kp] != nil }
+            \#(raw: accessControl.syntax)var cases: Cases {
+                Cases(self)
+            }
             }
             """#
         )
@@ -155,28 +156,55 @@ extension CaseDecl {
 
             return """
                 \(accessControl.syntax)var \(name): \(type)? {
-                    guard case let .\(name)(\(args)) = base else { 
-                        return nil 
+                    get {
+                        guard case let .\(name)(\(args)) = base else { 
+                            return nil 
+                        }
+                        return (\(args))
                     }
-                    return (\(args))
+                    set {
+                        if let newBase = newValue.map(Base.\(name)) {
+                            base = newBase
+                        } else if \(name) != nil {
+                            base = nil
+                        }
+                    }
                 }
                 """
         } else if let type = associatedTypes.first {
             return """
                 \(accessControl.syntax)var \(name): \(type)? {
-                    guard case let .\(name)(p0) = base else { 
-                        return nil 
+                    get {
+                        guard case let .\(name)(p0) = base else { 
+                            return nil 
+                        }
+                        return p0
                     }
-                    return p0
+                    set {
+                        if let newBase = newValue.map(Base.\(name)) {
+                            base = newBase
+                        } else if \(name) != nil {
+                            base = nil
+                        }
+                    }
                 }
                 """
         } else {
             return """
                 \(accessControl.syntax)var \(name): Void? {
-                    guard case .\(name) = base else { 
-                        return nil 
+                    get {
+                        guard case .\(name) = base else { 
+                            return nil 
+                        }
+                        return ()
                     }
-                    return ()
+                    set {
+                        if newValue != nil {
+                            base = .\(name)
+                        } else if \(name) != nil {
+                            base = nil
+                        }
+                    }
                 }
                 """
         }

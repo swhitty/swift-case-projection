@@ -1,6 +1,6 @@
 # swift-case-projection
 
-Macro for Swift enums that generates read-only enum case projections.
+Macro for Swift enums that generates enum case projections.
 
 ## Example
 
@@ -17,7 +17,11 @@ Expands to:
 ```swift
 extension Item {
     struct Cases {
-        fileprivate let base: Item
+        var base: Item
+        
+        init(_ base: Item) {
+            self.base = base
+        }
 
         var foo: Int? {
             guard case let .foo(p0) = base else {
@@ -35,11 +39,7 @@ extension Item {
     }
 
     var cases: Cases {
-        Cases(base: self)
-    }
-
-    func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
-        cases[keyPath: kp] != nil
+        Cases(self)
     }
 }
 ```
@@ -55,3 +55,37 @@ val.cases.bar == nil
 val.isCase(\.foo) // true
 val.isCase(\.bar) // false
 ```
+
+## WritableKeyPath
+
+Optional enums include a `case` subscript with a `WritableKeyPath`
+
+```swift
+var item: Item?
+
+item[case: \.foo] == nil
+item[case: \.bar] == nil
+
+item[case: \.foo] = 1
+item[case: \.foo] == 1
+item[case: \.bar] == nil
+
+item[case: \.bar] = ("Fish", false)
+item[case: \.foo] == nil
+item[case: \.bar] == ("Fish", false)
+
+item[case: \.bar] = nil
+item == nil
+```
+
+## SwiftUI Bindings
+
+Optional enums can be projected into SwiftUI `Binding`s, making it easy to drive presentation from cases.
+
+```swift
+.sheet(isPresented: $viewModel.item.resetOnFalse(\.cases.foo)) {
+    FooView()
+}
+```
+
+This transforms `$viewModel.item` into a `Binding<Bool>` that is true when the case .foo is present, and resets item back to nil when the sheet is dismissed.

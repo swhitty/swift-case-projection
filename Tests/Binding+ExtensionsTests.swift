@@ -1,5 +1,5 @@
 //
-//  CaseProjection.swift
+//  Binding+ExtensionsTests.swift
 //  swift-case-projection
 //
 //  Created by Simon Whitty on 19/08/2025.
@@ -29,39 +29,12 @@
 //  SOFTWARE.
 //
 
-@attached(extension, conformances: CaseProjecting, names: named(cases), named(isCase), named(Cases))
-public macro CaseProjection() = #externalMacro(module: "MacroPlugin", type: "CaseProjectionMacro")
+#if canImport(SwiftUI)
+import SwiftUI
+import CaseProjection
+import Testing
 
-public protocol CaseProjecting {
-    associatedtype Cases: CaseProjection where Cases.Base == Self
-
-    var cases: Cases { get }
+struct BindingExtensionsTests {
+ // todo
 }
-
-public extension CaseProjecting {
-    func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
-        cases[keyPath: kp] != nil
-    }
-}
-
-public protocol CaseProjection {
-    associatedtype Base
-
-    var base: Base? { get }
-
-    init(_ base: Base?)
-}
-
-public extension Optional where Wrapped: CaseProjecting {
-    subscript<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>) -> T? {
-        get {
-            self?.cases[keyPath: kp]
-        }
-        set {
-            var proxy = Wrapped.Cases(self)
-            proxy[keyPath: kp] = newValue
-            self = proxy.base
-        }
-    }
-}
-
+#endif

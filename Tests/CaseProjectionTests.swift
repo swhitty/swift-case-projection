@@ -48,8 +48,31 @@ struct CaseProjectionTests {
         #expect(Item.bar(1).isCase(\.bar))
         #expect(Item.baz("fish", true, 5).isCase(\.baz))
     }
-}
 
+    @Test
+    func writeable() {
+        var item: Item?
+
+        #expect(item[case: \.foo] == nil)
+        #expect(item[case: \.bar] == nil)
+
+        item[case: \.foo] = ()
+        #expect(item[case: \.foo] != nil)
+        #expect(item[case: \.bar] == nil)
+
+        item[case: \.bar] = 10
+        #expect(item[case: \.foo] == nil)
+        #expect(item[case: \.bar] == 10)
+
+        item[case: \.foo] = nil
+        #expect(item[case: \.foo] == nil)
+        #expect(item[case: \.bar] == 10)
+
+        item[case: \.bar] = nil
+        #expect(item[case: \.foo] == nil)
+        #expect(item[case: \.bar] == nil)
+    }
+}
 
 @CaseProjection
 public enum Item {
@@ -69,4 +92,3 @@ extension Namespace {
         case chips(Bool)
     }
 }
-

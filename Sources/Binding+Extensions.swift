@@ -29,39 +29,39 @@
 //  SOFTWARE.
 //
 
-@attached(extension, conformances: CaseProjecting, names: named(cases), named(isCase), named(Cases))
-public macro CaseProjection() = #externalMacro(module: "MacroPlugin", type: "CaseProjectionMacro")
+#if canImport(SwiftUI)
 
-public protocol CaseProjecting {
-    associatedtype Cases: CaseProjection where Cases.Base == Self
+import SwiftUI
 
-    var cases: Cases { get }
-}
+public extension Binding where Value: Sendable {
 
-public extension CaseProjecting {
-    func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
-        cases[keyPath: kp] != nil
+    func resetOnNil<Wrapped, R>(_ transform: @escaping @Sendable (Wrapped) -> R?) -> Binding<R?> where Value == Wrapped? {
+        Binding<R?> {
+            guard let wrappedValue else { return nil }
+            return transform(wrappedValue)
+        } set: {
+            guard $0 == nil,
+                  let val = wrappedValue,
+                  transform(val) != nil else {
+                return
+            }
+            wrappedValue = .none
+        }
+    }
+
+    func resetOnFalse<Wrapped, R>(_ transform: @escaping @Sendable (Wrapped) -> R?) -> Binding<Bool> where Value == Wrapped? {
+        Binding<Bool> {
+            guard let wrappedValue else { return false }
+            return transform(wrappedValue) != nil
+        } set: {
+            guard $0 == false,
+                  let val = wrappedValue,
+                  transform(val) != nil else {
+                return
+            }
+            wrappedValue = .none
+        }
     }
 }
 
-public protocol CaseProjection {
-    associatedtype Base
-
-    var base: Base? { get }
-
-    init(_ base: Base?)
-}
-
-public extension Optional where Wrapped: CaseProjecting {
-    subscript<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>) -> T? {
-        get {
-            self?.cases[keyPath: kp]
-        }
-        set {
-            var proxy = Wrapped.Cases(self)
-            proxy[keyPath: kp] = newValue
-            self = proxy.base
-        }
-    }
-}
-
+#endif
