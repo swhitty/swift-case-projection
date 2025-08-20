@@ -34,7 +34,153 @@ import SwiftUI
 import CaseProjection
 import Testing
 
+@MainActor
 struct BindingExtensionsTests {
- // todo
+
+    @Test
+    func resetOnNilUpdates() {
+        // given
+        let mock = MockBinding(value: Node.foo("Fish"))
+        let fooBinding = mock.$value.resetOnNil(\.cases.foo)
+        let barBinding = mock.$value.resetOnNil(\.cases.bar)
+
+        // then
+        #expect(fooBinding.wrappedValue == "Fish")
+        #expect(barBinding.wrappedValue == nil)
+
+        // when
+        mock.value = .bar(42)
+
+        // then
+        #expect(fooBinding.wrappedValue == nil)
+        #expect(barBinding.wrappedValue == 42)
+
+        // when
+        mock.value = nil
+
+        // then
+        #expect(fooBinding.wrappedValue == nil)
+        #expect(barBinding.wrappedValue == nil)
+    }
+
+    @Test
+    func resetOnFalseUpdates() {
+        // given
+        let mock = MockBinding(value: Node.foo("Fish"))
+        let fooBinding = mock.$value.resetOnFalse(\.cases.foo)
+        let barBinding = mock.$value.resetOnFalse(\.cases.bar)
+
+        // then
+        #expect(fooBinding.wrappedValue == true)
+        #expect(barBinding.wrappedValue == false)
+
+        // when
+        mock.value = .bar(42)
+
+        // then
+        #expect(fooBinding.wrappedValue == false)
+        #expect(barBinding.wrappedValue == true)
+
+        // when
+        mock.value = nil
+
+        // then
+        #expect(fooBinding.wrappedValue == false)
+        #expect(barBinding.wrappedValue == false)
+    }
+
+    @Test
+    func resetOnNilResets() {
+        // given
+        let mock = MockBinding(value: Node.foo("Fish"))
+        let fooBinding = mock.$value.resetOnNil(\.cases.foo)
+        let barBinding = mock.$value.resetOnNil(\.cases.bar)
+
+        // then
+        #expect(fooBinding.wrappedValue == "Fish")
+        #expect(barBinding.wrappedValue == nil)
+
+        // when
+        barBinding.wrappedValue = nil
+
+        // then
+        #expect(fooBinding.wrappedValue == "Fish")
+        #expect(barBinding.wrappedValue == nil)
+
+        // when
+        fooBinding.wrappedValue = nil
+
+        // then
+        #expect(fooBinding.wrappedValue == nil)
+        #expect(barBinding.wrappedValue == nil)
+    }
+
+    @Test
+    func resetOnFalseResets() {
+        // given
+        let mock = MockBinding(value: Node.foo("Fish"))
+        let fooBinding = mock.$value.resetOnFalse(\.cases.foo)
+        let barBinding = mock.$value.resetOnFalse(\.cases.bar)
+
+        // then
+        #expect(fooBinding.wrappedValue == true)
+        #expect(barBinding.wrappedValue == false)
+
+        // when
+        barBinding.wrappedValue = false
+
+        // then
+        #expect(fooBinding.wrappedValue == true)
+        #expect(barBinding.wrappedValue == false)
+
+        // when
+        fooBinding.wrappedValue = false
+
+        // then
+        #expect(fooBinding.wrappedValue == false)
+        #expect(barBinding.wrappedValue == false)
+    }
+}
+
+@CaseProjection
+enum Node {
+    case foo(String)
+    case bar(Int)
+}
+
+@MainActor
+final class MockBinding<Value> {
+
+    @ProjectedBinding
+    var value: Value?
+
+    init(value: Value) {
+        self.storage = value
+        self._value.binding = Binding { [weak self] in
+            self?.storage
+        } set: { [weak self] in
+            self?.storage = $0
+        }
+    }
+
+    private var storage: Value?
+}
+
+extension MockBinding {
+    @propertyWrapper
+    struct ProjectedBinding {
+        fileprivate var binding: Binding<Value?>!
+
+        var projectedValue: Binding<Value?> {
+            binding!
+        }
+
+        var wrappedValue: Value? {
+            get { binding.wrappedValue }
+            set { binding.wrappedValue = newValue }
+        }
+
+        init(wrappedValue: Value?) { }
+    }
 }
 #endif
