@@ -21,6 +21,11 @@ jobs:
         run: swift test --skip-build --enable-code-coverage
       - name: Gather code coverage
         run: xcrun llvm-cov export -format="lcov" .build/debug/swift-case-projectionPackageTests.xctest/Contents/MacOS/swift-case-projectionPackageTests -instr-profile .build/debug/codecov/default.profdata > coverage_report.lcov
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage_report.lcov
 
   xcode_26:
     runs-on: macos-15

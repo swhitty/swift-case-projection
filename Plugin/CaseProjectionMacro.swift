@@ -64,7 +64,8 @@ enum CaseProjectionMacro: ExtensionMacro {
             \#(raw: accessControl.syntax)init(_ base: \#(raw: typeDecl.fullyQualifiedName)?) {
                 self.base = base
             }
-            \#(raw: accessControl.syntax)var base: \#(raw: typeDecl.fullyQualifiedName)?
+            private var base: \#(raw: typeDecl.fullyQualifiedName)?
+            \#(raw: accessControl.syntax)func __base() -> \#(raw: typeDecl.fullyQualifiedName)? { base }
             }
             
             \#(raw: accessControl.syntax)var cases: Cases {

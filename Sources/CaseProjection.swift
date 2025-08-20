@@ -47,9 +47,18 @@ public extension CaseProjecting {
 public protocol CaseProjection {
     associatedtype Base
 
-    var base: Base? { get }
-
     init(_ base: Base?)
+
+    func __base() -> Base?
+}
+
+public extension CaseProjecting {
+
+    subscript<T>(case kp: KeyPath<Cases, T?>) -> T? {
+        get {
+            cases[keyPath: kp]
+        }
+    }
 }
 
 public extension Optional where Wrapped: CaseProjecting {
@@ -60,8 +69,13 @@ public extension Optional where Wrapped: CaseProjecting {
         set {
             var proxy = Wrapped.Cases(self)
             proxy[keyPath: kp] = newValue
-            self = proxy.base
+            self = proxy.__base()
+        }
+    }
+
+    subscript<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {
+        get {
+            self?.cases[keyPath: kp]
         }
     }
 }
-

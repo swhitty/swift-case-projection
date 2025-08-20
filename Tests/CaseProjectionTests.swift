@@ -49,6 +49,19 @@ struct CaseProjectionTests {
         #expect(Item.baz("fish", true, 5).isCase(\.baz))
     }
 
+
+    @Test
+    func readonly() {
+        var item: Item = .foo
+
+        #expect(item[case: \.foo] != nil)
+        #expect(item[case: \.bar] == nil)
+
+        item = .bar(50)
+        #expect(item[case: \.foo] == nil)
+        #expect(item[case: \.bar] == 50)
+    }
+
     @Test
     func writeable() {
         var item: Item?
