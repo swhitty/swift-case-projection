@@ -90,7 +90,18 @@ item[case: \.bar] == nil
 item[case: \.bar] = ("Fish", false)
 item[case: \.foo] == nil
 item[case: \.bar] == ("Fish", false)
+```
 
+Nilling a projection is ignored if the enum is not currently that case:
+
+```swift
+item[case: \.foo] = nil
+item == .bar("Fish", false)
+```
+
+But setting `nil` on an active case clears the underlying optional entirely:
+
+```swift
 item[case: \.bar] = nil
 item == nil
 ```
