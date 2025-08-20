@@ -56,9 +56,26 @@ val.isCase(\.foo) // true
 val.isCase(\.bar) // false
 ```
 
+## KeyPath (read-only)
+
+Access case payloads via a **read-only** case key path.
+
+```swift
+var val: Item = .bar("Fish", true)
+
+val[case: \.foo] == nil
+val[case: \.bar] == ("Fish", true)
+
+val = .foo(5)
+val[case: \.foo] == 5
+val[case: \.bar] == nil
+```
+
+> For non-optional enums, `case` access is read-only: you can inspect the payload if the case matches, otherwise you get `nil`.
+
 ## WritableKeyPath
 
-Optional enums include a `case` subscript with a `WritableKeyPath`
+When the enum is **optional**, the `case` subscript becomes writable so you can set or clear a specific case.
 
 ```swift
 var item: Item?
