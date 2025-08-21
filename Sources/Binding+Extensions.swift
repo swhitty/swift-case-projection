@@ -1,5 +1,5 @@
 //
-//  CaseProjection.swift
+//  Binding+Extensions.swift
 //  swift-case-projection
 //
 //  Created by Simon Whitty on 19/08/2025.
