@@ -86,8 +86,8 @@ item == nil
 Expanding the macro reveals the projected view of the enum with a mutable property for each case.
 
 ```swift
-extension Item {
-    struct Cases {
+extension Item: CaseProjecting {
+    struct Cases: CaseProjection {
         var base: Item
         
         init(_ base: Item) {
