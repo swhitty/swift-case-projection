@@ -1,18 +1,89 @@
 # swift-case-projection
 
-Macro for Swift enums that generates enum case projections.
+A Swift macro for enums that generates **case projections**, providing type-safe access to associated values via [KeyPaths](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/expressions/#Key-Path-Expression).
+
+[Enums with associated values](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/enumerations/#Associated-Values) are one of Swift’s most powerful features—but the syntax [can be tricky](https://goshdarnifcaseletsyntax.com).  
+`@CaseProjection` removes this friction by letting you work with enum cases directly through key paths, subscripts, and SwiftUI bindings.
+
+---
+
+## Installation
+
+Add **swift-case-projection** with Swift Package Manager:
+
+```swift
+.package(url: "https://github.com/swhitty/swift-case-projection.git", from: "0.1.0")
+```
+
+Then add `"swift-case-projection"` as a dependency in your target.
+
+---
 
 ## Example
 
+Annotate your enum with `@CaseProjection` to enable projections:
+
 ```swift
+import CaseProjection
+
 @CaseProjection
 enum Item {
-    case foo(Int)
-    case bar(String, Bool)
+    case foo
+    case bar(String)
 }
 ```
 
-Expands to:
+### Case Checking
+
+```swift
+var item: Item = .foo
+
+item.isCase(\.foo)   // true
+item.isCase(\.bar)   // false
+```
+
+### Accessing Associated Values
+
+You can read associated values from each case using the `case:` subscript:
+
+```swift
+item = .bar("Fish")
+
+item[case: \.bar]    // "Fish"
+item[case: \.foo]    // nil
+```
+
+### Writable Subscript for Optionals
+
+When the enum is **optional**, you can set or clear cases directly:
+
+```swift
+var item: Item?
+
+item[case: \.bar] = "Chips"
+item == .bar("Chips")
+
+item[case: \.bar] = nil
+item == nil
+```
+
+Setting `nil` on an inactive case has no effect:
+
+```swift
+item = .foo
+
+item[case: \.bar] = nil   // still .foo
+item == .foo
+
+item[case: \.foo] = nil
+item == nil
+```
+
+---
+
+### Macro Expansion
+
+Expanding the macro reveals the projected view of the enum with a mutable property for each case.
 
 ```swift
 extension Item {
@@ -23,97 +94,78 @@ extension Item {
             self.base = base
         }
 
-        var foo: Int? {
-            guard case let .foo(p0) = base else {
-                return nil
+        var foo: Void? {
+            get {
+                guard case .foo = base else { return nil }
+                return ()
             }
-            return p0
+            set {
+                if newValue != nil {
+                    base = .foo
+                } else if foo != nil {
+                    base = nil
+                }
+            }
         }
 
-        var bar: (String, Bool)? {
-            guard case let .bar(p0, p1) = base else {
-                return nil
+        var bar: String? {
+            get {
+                guard case let .bar(p0) = base else {
+                    return nil
+                }
+                return p0
             }
-            return (p0, p1)
+            set {
+                if let newBase = newValue.map(Base.bar) {
+                    base = newBase
+                } else if bar != nil {
+                    base = nil
+                }
+            }
         }
-    }
-
-    var cases: Cases {
-        Cases(self)
     }
 }
 ```
 
-The generated Cases struct exposes each associated value as an optional, so you can easily inspect enum cases in a type-safe way.
+When using case key paths like `item[case: \.foo]` the type is rooted in this `Cases` projection.
 
-```swift
-let val = Item.foo(1)
+```
+let fooPath = \Item.Cases.foo
+let barPath = \Item.Cases.bar
 
-val.cases.foo == 1
-val.cases.bar == nil
-
-val.isCase(\.foo) // true
-val.isCase(\.bar) // false
+var item: Item = .foo
+item.isCase(fooPath)  // true
+item.isCase(barPath)  // false
 ```
 
-## KeyPath (read-only)
+---
 
-Access case payloads via a **read-only** case key path.
-
-```swift
-var val: Item = .bar("Fish", true)
-
-val[case: \.foo] == nil
-val[case: \.bar] == ("Fish", true)
-
-val = .foo(5)
-val[case: \.foo] == 5
-val[case: \.bar] == nil
-```
-
-> For non-optional enums, `case` access is read-only: you can inspect the payload if the case matches, otherwise you get `nil`.
-
-## WritableKeyPath
-
-When the enum is **optional**, the `case` subscript becomes writable so you can set or clear a specific case.
-
-```swift
-var item: Item?
-
-item[case: \.foo] == nil
-item[case: \.bar] == nil
-
-item[case: \.foo] = 1
-item[case: \.foo] == 1
-item[case: \.bar] == nil
-
-item[case: \.bar] = ("Fish", false)
-item[case: \.foo] == nil
-item[case: \.bar] == ("Fish", false)
-```
-
-Nilling a projection is ignored if the enum is not currently that case:
-
-```swift
-item[case: \.foo] = nil
-item == .bar("Fish", false)
-```
-
-But setting `nil` on an active case clears the underlying optional entirely:
-
-```swift
-item[case: \.bar] = nil
-item == nil
-```
 
 ## SwiftUI Bindings
 
-Optional enums can be projected into SwiftUI `Binding`s, making it easy to drive presentation from cases.
+Optional enums can be projected into SwiftUI bindings, making it easy to drive view presentation from associated values.
 
 ```swift
-.sheet(isPresented: $viewModel.item.resetOnFalse(\.cases.foo)) {
-    FooView()
+.sheet(item: $viewModel.item.unwrapping(case: \.baz)) {
+    BazView(id: $0)
 }
 ```
 
-This transforms `$viewModel.item` into a `Binding<Bool>` that is true when the case .foo is present, and resets item back to nil when the sheet is dismissed.
+Or trigger presentations when a case is present.
+
+```swift
+.sheet(isPresented: $viewModel.item.isPresent(case: \.baz)) {
+    BazView()
+}
+```
+
+When presented views are dismissed, the binding calls `wrappedValue[case: \.baz] = nil`, which clears the associated value and resets the enum to `nil` if that case was active.
+
+---
+
+
+## Credits
+
+CaseProjection is primarily the work of [Simon Whitty](https://github.com/swhitty).
+
+([Full list of contributors](https://github.com/swhitty/swift-case-projection/graphs/contributors))

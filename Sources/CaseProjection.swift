@@ -34,13 +34,11 @@ public macro CaseProjection() = #externalMacro(module: "MacroPlugin", type: "Cas
 
 public protocol CaseProjecting {
     associatedtype Cases: CaseProjection where Cases.Base == Self
-
-    var cases: Cases { get }
 }
 
 public extension CaseProjecting {
     func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
-        cases[keyPath: kp] != nil
+        Cases(self)[keyPath: kp] != nil
     }
 }
 
@@ -56,7 +54,7 @@ public extension CaseProjecting {
 
     subscript<T>(case kp: KeyPath<Cases, T?>) -> T? {
         get {
-            cases[keyPath: kp]
+            Cases(self)[keyPath: kp]
         }
     }
 }
@@ -64,7 +62,7 @@ public extension CaseProjecting {
 public extension Optional where Wrapped: CaseProjecting {
     subscript<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>) -> T? {
         get {
-            self?.cases[keyPath: kp]
+            Wrapped.Cases(self)[keyPath: kp]
         }
         set {
             var proxy = Wrapped.Cases(self)
@@ -75,7 +73,7 @@ public extension Optional where Wrapped: CaseProjecting {
 
     subscript<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {
         get {
-            self?.cases[keyPath: kp]
+            Wrapped.Cases(self)[keyPath: kp]
         }
     }
 }

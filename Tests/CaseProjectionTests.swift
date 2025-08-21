@@ -36,13 +36,6 @@ import Testing
 struct CaseProjectionTests {
 
     @Test
-    func projectedAssociatedValue() {
-        #expect(Item.foo.cases.foo != nil)
-        #expect(Item.bar(1).cases.bar == 1)
-        #expect(Item.baz("fish", true, 5).cases.baz! == ("fish", true, 5))
-    }
-
-    @Test
     func projectedCase() {
         #expect(Item.foo.isCase(\.foo))
         #expect(Item.bar(1).isCase(\.bar))

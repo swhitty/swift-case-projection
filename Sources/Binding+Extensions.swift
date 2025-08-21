@@ -33,33 +33,24 @@
 
 import SwiftUI
 
-public extension Binding where Value: Sendable {
+@MainActor
+public extension Binding {
 
-    func resetOnNil<Wrapped, R>(_ transform: @escaping @Sendable (Wrapped) -> R?) -> Binding<R?> where Value == Wrapped? {
+    func unwrapping<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<R?> where Wrapped: CaseProjecting, Value == Wrapped? {
         Binding<R?> {
-            guard let wrappedValue else { return nil }
-            return transform(wrappedValue)
+            wrappedValue[case: kp]
         } set: {
-            guard $0 == nil,
-                  let val = wrappedValue,
-                  transform(val) != nil else {
-                return
-            }
-            wrappedValue = .none
+            wrappedValue[case: kp] = $0
         }
     }
 
-    func resetOnFalse<Wrapped, R>(_ transform: @escaping @Sendable (Wrapped) -> R?) -> Binding<Bool> where Value == Wrapped? {
+    func isPresent<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<Bool> where Wrapped: CaseProjecting, Value == Wrapped? {
         Binding<Bool> {
-            guard let wrappedValue else { return false }
-            return transform(wrappedValue) != nil
+            wrappedValue[case: kp] != nil
         } set: {
-            guard $0 == false,
-                  let val = wrappedValue,
-                  transform(val) != nil else {
-                return
+            if $0 == false {
+                wrappedValue[case: kp] = nil
             }
-            wrappedValue = .none
         }
     }
 }

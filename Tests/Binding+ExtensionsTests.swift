@@ -38,11 +38,11 @@ import Testing
 struct BindingExtensionsTests {
 
     @Test
-    func resetOnNilUpdates() {
+    func unwrappingUpdates() {
         // given
         let mock = MockBinding(value: Node.foo("Fish"))
-        let fooBinding = mock.$value.resetOnNil(\.cases.foo)
-        let barBinding = mock.$value.resetOnNil(\.cases.bar)
+        let fooBinding = mock.$value.unwrapping(case: \.foo)
+        let barBinding = mock.$value.unwrapping(case: \.bar)
 
         // then
         #expect(fooBinding.wrappedValue == "Fish")
@@ -64,11 +64,11 @@ struct BindingExtensionsTests {
     }
 
     @Test
-    func resetOnFalseUpdates() {
+    func isPresentUpdates() {
         // given
         let mock = MockBinding(value: Node.foo("Fish"))
-        let fooBinding = mock.$value.resetOnFalse(\.cases.foo)
-        let barBinding = mock.$value.resetOnFalse(\.cases.bar)
+        let fooBinding = mock.$value.isPresent(case: \.foo)
+        let barBinding = mock.$value.isPresent(case: \.bar)
 
         // then
         #expect(fooBinding.wrappedValue == true)
@@ -90,11 +90,11 @@ struct BindingExtensionsTests {
     }
 
     @Test
-    func resetOnNilResets() {
+    func unwrappingResetsOnNil() {
         // given
         let mock = MockBinding(value: Node.foo("Fish"))
-        let fooBinding = mock.$value.resetOnNil(\.cases.foo)
-        let barBinding = mock.$value.resetOnNil(\.cases.bar)
+        let fooBinding = mock.$value.unwrapping(case: \.foo)
+        let barBinding = mock.$value.unwrapping(case: \.bar)
 
         // then
         #expect(fooBinding.wrappedValue == "Fish")
@@ -116,11 +116,11 @@ struct BindingExtensionsTests {
     }
 
     @Test
-    func resetOnFalseResets() {
+    func isPresentResetsOnFalse() {
         // given
         let mock = MockBinding(value: Node.foo("Fish"))
-        let fooBinding = mock.$value.resetOnFalse(\.cases.foo)
-        let barBinding = mock.$value.resetOnFalse(\.cases.bar)
+        let fooBinding = mock.$value.isPresent(case: \.foo)
+        let barBinding = mock.$value.isPresent(case: \.bar)
 
         // then
         #expect(fooBinding.wrappedValue == true)
