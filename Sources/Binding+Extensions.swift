@@ -44,6 +44,16 @@ public extension Binding {
         }
     }
 
+    func guarded<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<R?> where Wrapped: CaseProjecting, Value == Wrapped? {
+        Binding<R?> {
+            wrappedValue[case: kp]
+        } set: {
+            if wrappedValue?.isCase(kp) == true {
+                wrappedValue[case: kp] = $0
+            }
+        }
+    }
+
     func isPresent<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<Bool> where Wrapped: CaseProjecting, Value == Wrapped? {
         Binding<Bool> {
             wrappedValue[case: kp] != nil

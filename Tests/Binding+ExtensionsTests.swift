@@ -64,6 +64,54 @@ struct BindingExtensionsTests {
     }
 
     @Test
+    func unwrappingBindingUpdatesAnyCase() {
+        // given
+        let mock = MockBinding(value: Node.foo("Fish"))
+        let fooBinding = mock.$value.unwrapping(case: \.foo)
+        let barBinding = mock.$value.unwrapping(case: \.bar)
+
+        // then
+        #expect(fooBinding.wrappedValue == "Fish")
+        #expect(barBinding.wrappedValue == nil)
+
+        // when
+        fooBinding.wrappedValue = "Chips"
+
+        // then
+        #expect(mock.value == .foo("Chips"))
+
+        // when
+        barBinding.wrappedValue = 5
+
+        // then
+        #expect(mock.value == .bar(5))
+    }
+
+    @Test
+    func guardedBindingOnlyUpdatesCurrentCase() {
+        // given
+        let mock = MockBinding(value: Node.foo("Fish"))
+        let fooBinding = mock.$value.guarded(case: \.foo)
+        let barBinding = mock.$value.guarded(case: \.bar)
+
+        // then
+        #expect(fooBinding.wrappedValue == "Fish")
+        #expect(barBinding.wrappedValue == nil)
+
+        // when
+        fooBinding.wrappedValue = "Chips"
+
+        // then
+        #expect(mock.value == .foo("Chips"))
+
+        // when
+        barBinding.wrappedValue = 5
+
+        // then
+        #expect(mock.value == .foo("Chips"))
+    }
+
+    @Test
     func isPresentUpdates() {
         // given
         let mock = MockBinding(value: Node.foo("Fish"))
@@ -143,7 +191,7 @@ struct BindingExtensionsTests {
 }
 
 @CaseProjection
-enum Node {
+enum Node: Equatable {
     case foo(String)
     case bar(Int)
 }
