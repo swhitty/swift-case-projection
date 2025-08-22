@@ -97,8 +97,17 @@ struct TypeDecl {
 
 struct CaseDecl {
     var name: String
-    var associatedTypes: [String]
+    var associatedTypes: [AssociatedType]
     var accessControl: AccessControl
+
+    struct AssociatedType {
+        var label: String?
+        var typeName: String
+
+        var displayLabel: String? {
+            label == "_" ? nil : label
+        }
+    }
 }
 
 enum AccessControl: String {
@@ -133,8 +142,12 @@ extension CaseDecl {
             return nil
         }
         let params = el.parameterClause?.parameters ?? []
-        let associatedTypes = params.compactMap {
-            $0.type.as(IdentifierTypeSyntax.self)?.name.text
+        let associatedTypes: [AssociatedType] = params.compactMap {
+            if let t = $0.type.as(IdentifierTypeSyntax.self)?.name.text {
+                return AssociatedType(label: $0.firstName?.text, typeName: t)
+            } else {
+                return nil
+            }
         }
 
         return CaseDecl(
@@ -145,14 +158,16 @@ extension CaseDecl {
     }
 
     var extractCaseSyntax: String {
+        let projectionType = associatedTypes.projectionType
+
         if associatedTypes.count > 1 {
-            let type = "(" + associatedTypes.joined(separator: ", ") + ")"
+
             let args = associatedTypes.indices
                 .map { "p\($0)" }
                 .joined(separator: ", ")
 
             return """
-                \(accessControl.syntax)var \(name): \(type)? {
+                \(accessControl.syntax)var \(name): \(projectionType) {
                     get {
                         guard case let .\(name)(\(args)) = base else { 
                             return nil 
@@ -168,9 +183,9 @@ extension CaseDecl {
                     }
                 }
                 """
-        } else if let type = associatedTypes.first {
+        } else if associatedTypes.count > 0 {
             return """
-                \(accessControl.syntax)var \(name): \(type)? {
+                \(accessControl.syntax)var \(name): \(projectionType) {
                     get {
                         guard case let .\(name)(p0) = base else { 
                             return nil 
@@ -188,7 +203,7 @@ extension CaseDecl {
                 """
         } else {
             return """
-                \(accessControl.syntax)var \(name): Void? {
+                \(accessControl.syntax)var \(name): \(projectionType) {
                     get {
                         guard case .\(name) = base else { 
                             return nil 
@@ -204,6 +219,25 @@ extension CaseDecl {
                     }
                 }
                 """
+        }
+    }
+}
+
+extension [CaseDecl.AssociatedType] {
+    var projectionType: String {
+        if count > 1 {
+            let elements = map {
+                if let label = $0.displayLabel {
+                    return "\(label): \($0.typeName)"
+                } else {
+                    return $0.typeName
+                }
+            }
+            return "(" + elements.joined(separator: ", ") + ")?"
+        } else if let type = first {
+            return "\(type.typeName)?"
+        } else {
+            return "Void?"
         }
     }
 }

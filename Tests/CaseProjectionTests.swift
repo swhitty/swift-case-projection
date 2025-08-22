@@ -38,8 +38,8 @@ struct CaseProjectionTests {
     @Test
     func projectedCase() {
         #expect(Item.foo.isCase(\.foo))
-        #expect(Item.bar(1).isCase(\.bar))
-        #expect(Item.baz("fish", true, 5).isCase(\.baz))
+        #expect(Item.bar(b: 1).isCase(\.bar))
+        #expect(Item.baz("fish", true, c: 5).isCase(\.baz))
     }
 
 
@@ -50,7 +50,7 @@ struct CaseProjectionTests {
         #expect(item[case: \.foo] != nil)
         #expect(item[case: \.bar] == nil)
 
-        item = .bar(50)
+        item = .bar(b: 50)
         #expect(item[case: \.foo] == nil)
         #expect(item[case: \.bar] == 50)
     }
@@ -83,8 +83,9 @@ struct CaseProjectionTests {
 @CaseProjection
 public enum Item {
     case foo
-    case bar(Int)
-    case baz(String, Bool, Int)
+    case bar(b: Int)
+    case baz(_ s: String, Bool, c: Int)
+    case zing(_ b: Float)
 }
 
 
