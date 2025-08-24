@@ -36,12 +36,6 @@ public protocol CaseProjecting {
     associatedtype Cases: CaseProjection where Cases.Base == Self
 }
 
-public extension CaseProjecting {
-    func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
-        Cases(self)[keyPath: kp] != nil
-    }
-}
-
 public protocol CaseProjection {
     associatedtype Base
 
@@ -52,6 +46,10 @@ public protocol CaseProjection {
 
 public extension CaseProjecting {
 
+    func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
+        Cases(self)[keyPath: kp] != nil
+    }
+
     subscript<T>(case kp: KeyPath<Cases, T?>) -> T? {
         get {
             Cases(self)[keyPath: kp]
@@ -60,20 +58,25 @@ public extension CaseProjecting {
 }
 
 public extension Optional where Wrapped: CaseProjecting {
-    subscript<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>) -> T? {
-        get {
-            Wrapped.Cases(self)[keyPath: kp]
-        }
-        set {
-            var proxy = Wrapped.Cases(self)
-            proxy[keyPath: kp] = newValue
-            self = proxy.base
-        }
+
+    func isCase<T>(_ kp: KeyPath<Wrapped.Cases, T?>) -> Bool {
+        Wrapped.Cases(self)[keyPath: kp] != nil
     }
 
     subscript<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {
         get {
             Wrapped.Cases(self)[keyPath: kp]
+        }
+    }
+
+    subscript<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>) -> T? {
+        get {
+            Wrapped.Cases(self)[keyPath: kp]
+        }
+        set {
+            var cases = Wrapped.Cases(self)
+            cases[keyPath: kp] = newValue
+            self = cases.base
         }
     }
 }
