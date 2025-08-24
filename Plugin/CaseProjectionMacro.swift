@@ -47,8 +47,7 @@ enum CaseProjectionMacro: ExtensionMacro {
             throw Invalid("Can only be applied to enum")
         }
 
-        let accessControl = declaration.modifiers.compactMap(AccessControl.make).first ?? .internal
-
+        let accessControl = AccessControl.make(attachedTo: declaration, in: context) ?? .internal
         let memberList = declaration.memberBlock.members
 
         let cases = try memberList.compactMap { member -> CaseDecl? in
@@ -110,11 +109,12 @@ struct CaseDecl {
 }
 
 enum AccessControl: String {
-    case `fileprivate`
     case `private`
+    case `fileprivate`
     case `internal`
     case `package`
     case `public`
+    case `open`
 }
 
 extension AccessControl {
@@ -122,11 +122,21 @@ extension AccessControl {
         AccessControl(rawValue: syntax.name.text)
     }
 
+    static func make(attachedTo declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) -> Self? {
+        let declAccess = declaration.modifiers.compactMap(AccessControl.make).first
+        var extAccess: AccessControl?
+        if let extDecl = context.lexicalContext.lazy.compactMap({ $0.as(ExtensionDeclSyntax.self) }).first {
+            extAccess = extDecl.modifiers.compactMap(AccessControl.make).first
+        }
+
+        return declAccess ?? extAccess
+    }
+
     var syntax: String {
         switch self {
         case .package, .public:
             return "\(rawValue) "
-        case .private, .fileprivate, .internal:
+        case .private, .fileprivate, .internal, .open:
             return ""
         }
     }

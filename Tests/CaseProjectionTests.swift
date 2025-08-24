@@ -89,9 +89,9 @@ public enum Item {
 }
 
 
-enum Namespace { }
+public enum Namespace { }
 
-extension Namespace {
+public extension Namespace {
 
     @CaseProjection
     enum Item {
@@ -99,3 +99,4 @@ extension Namespace {
         case chips(Bool)
     }
 }
+
