@@ -47,7 +47,7 @@ public protocol CaseProjection {
 
     init(_ base: Base?)
 
-    func __base() -> Base?
+    var base: Base? { get set }
 }
 
 public extension CaseProjecting {
@@ -67,7 +67,7 @@ public extension Optional where Wrapped: CaseProjecting {
         set {
             var proxy = Wrapped.Cases(self)
             proxy[keyPath: kp] = newValue
-            self = proxy.__base()
+            self = proxy.base
         }
     }
 

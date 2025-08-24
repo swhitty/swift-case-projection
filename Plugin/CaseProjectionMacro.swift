@@ -64,8 +64,7 @@ enum CaseProjectionMacro: ExtensionMacro {
             \#(raw: accessControl.syntax)init(_ base: \#(raw: typeDecl.fullyQualifiedName)?) {
                 self.base = base
             }
-            private var base: \#(raw: typeDecl.fullyQualifiedName)?
-            \#(raw: accessControl.syntax)func __base() -> \#(raw: typeDecl.fullyQualifiedName)? { base }
+            \#(raw: accessControl.syntax)var base: \#(raw: typeDecl.fullyQualifiedName)?
             }
             }
             """#
@@ -160,52 +159,11 @@ extension CaseDecl {
     var extractCaseSyntax: String {
         let projectionType = associatedTypes.projectionType
 
-        if associatedTypes.count > 1 {
-
-            let args = associatedTypes.indices
-                .map { "p\($0)" }
-                .joined(separator: ", ")
-
+        if associatedTypes.isEmpty {
             return """
                 \(accessControl.syntax)var \(name): \(projectionType) {
                     get {
-                        guard case let .\(name)(\(args)) = base else { 
-                            return nil 
-                        }
-                        return (\(args))
-                    }
-                    set {
-                        if let newBase = newValue.map(Base.\(name)) {
-                            base = newBase
-                        } else if \(name) != nil {
-                            base = nil
-                        }
-                    }
-                }
-                """
-        } else if associatedTypes.count > 0 {
-            return """
-                \(accessControl.syntax)var \(name): \(projectionType) {
-                    get {
-                        guard case let .\(name)(p0) = base else { 
-                            return nil 
-                        }
-                        return p0
-                    }
-                    set {
-                        if let newBase = newValue.map(Base.\(name)) {
-                            base = newBase
-                        } else if \(name) != nil {
-                            base = nil
-                        }
-                    }
-                }
-                """
-        } else {
-            return """
-                \(accessControl.syntax)var \(name): \(projectionType) {
-                    get {
-                        guard case .\(name) = base else { 
+                        guard case .\(name)? = base else { 
                             return nil 
                         }
                         return ()
@@ -213,7 +171,28 @@ extension CaseDecl {
                     set {
                         if newValue != nil {
                             base = .\(name)
-                        } else if \(name) != nil {
+                        } else if case .\(name)? = base {
+                            base = nil
+                        }
+                    }
+                }
+                """
+        } else {
+            let getterArgs = "(" + associatedTypes.makeParameterList(includeLabels: false) + ")"
+            let setterArgs = "(" + associatedTypes.makeParameterList(includeLabels: true) + ")"
+            let setterLet = associatedTypes.count > 1 ? "\(setterArgs) = newValue" : "newValue"
+            return """
+                \(accessControl.syntax)var \(name): \(projectionType) {
+                    get {
+                        guard case let .\(name)\(getterArgs)? = base else { 
+                            return nil 
+                        }
+                        return \(getterArgs)
+                    }
+                    set {
+                        if let \(setterLet) {
+                            base = .\(name)\(setterArgs)
+                        } else if case .\(name)? = base {
                             base = nil
                         }
                     }
@@ -224,6 +203,7 @@ extension CaseDecl {
 }
 
 extension [CaseDecl.AssociatedType] {
+
     var projectionType: String {
         if count > 1 {
             let elements = map {
@@ -238,6 +218,28 @@ extension [CaseDecl.AssociatedType] {
             return "\(type.typeName)?"
         } else {
             return "Void?"
+        }
+    }
+
+    func makeParameterList(includeLabels: Bool) -> String {
+        if includeLabels {
+            guard count > 1 else {
+                let prefix = first?.displayLabel.map { "\($0): " } ?? ""
+                return prefix + "newValue"
+            }
+            return enumerated()
+                .map { idx, arg in
+                    if let label = arg.displayLabel {
+                        return "\(label): p\(idx)"
+                    } else {
+                        return "p\(idx)"
+                    }
+                }
+                .joined(separator: ", ")
+        } else {
+            return indices
+                .map { "p\($0)" }
+                .joined(separator: ", ")
         }
     }
 }
