@@ -48,14 +48,19 @@ extension AccessControl {
         AccessControl(rawValue: syntax.name.text)
     }
 
-    static func make(attachedTo declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) -> Self? {
+    static func make(attachedTo declaration: some DeclGroupSyntax, in context: some MacroExpansionContext) -> Self {
         let declAccess = declaration.modifiers.compactMap(AccessControl.make).first
         var extAccess: AccessControl?
         if let extDecl = context.lexicalContext.lazy.compactMap({ $0.as(ExtensionDeclSyntax.self) }).first {
             extAccess = extDecl.modifiers.compactMap(AccessControl.make).first
         }
 
-        return declAccess ?? extAccess
+        let access = declAccess ?? extAccess ?? .internal
+        if access == .private {
+            return .fileprivate
+        } else {
+            return access
+        }
     }
 
     var syntax: String {
