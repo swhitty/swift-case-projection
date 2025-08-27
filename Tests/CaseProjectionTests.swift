@@ -31,6 +31,7 @@
 
 import Foundation
 import CaseProjection
+@testable import MacroPlugin
 import Testing
 
 struct CaseProjectionTests {

@@ -35,7 +35,12 @@ let package = Package(
         ),
         .testTarget(
             name: "CaseProjectionTests",
-            dependencies: ["CaseProjection", "MacroPlugin"],
+            dependencies: [
+                "CaseProjection",
+                "MacroPlugin",
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
+            ],
             path: "Tests",
             swiftSettings: .upcomingFeatures
         )
