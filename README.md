@@ -1,3 +1,7 @@
+[![Build](https://github.com/swhitty/identifiable-macro/actions/workflows/build.yml/badge.svg)](https://github.com/swhitty/swift-case-projection/actions/workflows/build.yml)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fswhitty%2Fswift-case-projection%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/swhitty/swift-case-projection) [![Swift 6.1](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fswhitty%2Fswift-case-projection%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/swhitty/swift-case-projection)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
+
 # swift-case-projection
 
 A Swift macro for enums that generates **case projections**, providing type-safe access to associated values via [KeyPaths](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/expressions/#Key-Path-Expression).
