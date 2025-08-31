@@ -34,10 +34,16 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+struct EnumDecl {
+    var accessControl: AccessControl
+    var name: String
+    var fullyQualifiedName: String
+    var cases: [CaseDecl]
+}
+
 struct CaseDecl {
     var name: String
     var associatedTypes: [AssociatedType]
-    var accessControl: AccessControl
 
     struct AssociatedType {
         var label: String?
@@ -49,8 +55,27 @@ struct CaseDecl {
     }
 }
 
+extension EnumDecl {
+    static func make(from syntax: some DeclGroupSyntax, providingExtensionsOf type: some TypeSyntaxProtocol, in context: some MacroExpansionContext) throws -> Self {
+        guard let enumDecl = syntax.as(EnumDeclSyntax.self) else {
+            throw Invalid("Can only be applied to enum")
+        }
+
+        let cases = try syntax.memberBlock.members.compactMap { member -> CaseDecl? in
+            try CaseDecl.make(from: member)
+        }
+
+        return EnumDecl(
+            accessControl: .make(attachedTo: syntax, in: context),
+            name: enumDecl.name.text,
+            fullyQualifiedName: TypeSyntax(type.trimmed).description,
+            cases: cases
+        )
+    }
+}
+
 extension CaseDecl {
-    static func make(from syntax: MemberBlockItemSyntax, accessControl: AccessControl) throws -> Self? {
+    static func make(from syntax: MemberBlockItemSyntax) throws -> Self? {
         guard let caseSyntax = syntax.decl.as(EnumCaseDeclSyntax.self) else {
             return nil
         }
@@ -68,8 +93,7 @@ extension CaseDecl {
 
         return CaseDecl(
             name: el.name.text,
-            associatedTypes: associatedTypes,
-            accessControl: accessControl
+            associatedTypes: associatedTypes
         )
     }
 
@@ -141,7 +165,7 @@ extension CaseDecl {
         }
     }
 
-    var projectionSyntax: String {
+    func makeProjectionSyntax(accessControl: AccessControl) -> String {
         return """
             \(accessControl.syntax)var \(name): \(projectionType) {
             \(projectionGetterSyntax)

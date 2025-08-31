@@ -140,29 +140,53 @@ struct AccessControlTests {
             """) == .fileprivate
         )
     }
+
+    @Test
+    func nested() {
+        #expect(
+            AccessControl.make(from: """
+                struct Foo {
+                    enum Bar { }
+                }
+            """) == .internal
+        )
+        #expect(
+            AccessControl.make(from: """
+                struct Foo<Element> {
+                    enum Bar { }
+                }
+            """) == .internal
+        )
+        #expect(
+            AccessControl.make(from: """
+                public struct Foo {
+                    struct Bar {
+                        enum Baz { }
+                    }
+                }
+            """) == .internal
+        )
+        #expect(
+            AccessControl.make(from: """
+                public struct Foo {
+                    public struct Bar {
+                        public enum Baz { }
+                    }
+                }
+            """) == .public
+        )
+    }
 }
 
 private extension AccessControl {
 
     static func make(from source: String) -> Self? {
         let tree = Parser.parse(source: source)
-        if let enumDecl = tree.statements.compactMap({ $0.item.as(EnumDeclSyntax.self) }).first {
+
+        if let enumDecl = firstEnumDecl(in: tree) {
             return make(attachedTo: enumDecl, in: .basic(decl: enumDecl, in: tree))
-         } else if let extDecl = tree.statements.compactMap({ $0.item.as(ExtensionDeclSyntax.self) }).first,
-                 let enumDecl = extDecl.memberBlock.members.compactMap({ $0.decl.as(EnumDeclSyntax.self) }).first {
-             return make(attachedTo: enumDecl, in: .basic(decl: enumDecl, in: tree))
         }
 
         return nil
-    }
-}
-
-private extension MacroExpansionContext where Self == BasicMacroExpansionContext {
-
-    static func basic(decl: some SyntaxProtocol, in source: SourceFileSyntax) -> BasicMacroExpansionContext {
-        BasicMacroExpansionContext(
-            lexicalContext: decl.allMacroLexicalContexts(),
-            sourceFiles: [source: .init(moduleName: "TestModule", fullFilePath: "Test.swift")]
-        )
     }
 }

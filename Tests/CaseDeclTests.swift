@@ -47,6 +47,43 @@ import SwiftSyntaxMacrosGenericTestSupport
 struct CaseProjectionMacroTests {
 
     @Test
+    func fullyQualifiedName() {
+        #expect(
+            EnumDecl.make(from: """
+               enum Foo { }
+               """)?.fullyQualifiedName == "Foo"
+        )
+        #expect(
+            EnumDecl.make(from: """
+               struct Zoo {
+                  enum Foo { }
+               }
+               """)?.fullyQualifiedName == "Zoo.Foo"
+        )
+        #expect(
+            EnumDecl.make(from: """
+               struct Zoo<Element> {
+                  enum Foo { }
+               }
+               """)?.fullyQualifiedName == "Zoo.Foo"
+        )
+        #expect(
+            EnumDecl.make(from: """
+               extension Zoo {
+                  enum Foo { }
+               }
+               """)?.fullyQualifiedName == "Zoo.Foo"
+        )
+        #expect(
+            EnumDecl.make(from: """
+               extension Zoo<Int> {
+                  enum Foo { }
+               }
+               """)?.fullyQualifiedName == "Zoo<Int>.Foo"
+        )
+    }
+
+    @Test
     func emptyCase() throws {
         let decl = try CaseDecl.parse("case foo")
 
@@ -203,7 +240,7 @@ private extension CaseDecl {
             throw CancellationError()
         }
         let cases = try enumDecl.memberBlock.members.compactMap {
-            try CaseDecl.make(from: $0, accessControl: .internal)
+            try CaseDecl.make(from: $0)
         }
 
         guard let first = cases.first else {
@@ -262,5 +299,62 @@ func myAssertMacroExpansion(
         init(_ message: String) {
             self.errorDescription = message
         }
+    }
+}
+
+private extension EnumDecl {
+
+    static func make(from source: String) -> Self? {
+        let tree = Parser.parse(source: source)
+
+        if let enumDecl = firstEnumDecl(in: tree) {
+            return try? make(from: enumDecl, providingExtensionsOf: enumDecl.syntacticQualifiedTypeContext!, in: .basic(decl: enumDecl, in: tree))
+        }
+
+        return nil
+    }
+}
+
+private extension SyntaxProtocol {
+    /// Retrieve the qualified type for the nearest extension or name decl.
+    ///
+    /// For example, for `struct Foo { struct Bar {} }`, calling this on the
+    /// inner struct (`Bar`) will return `Foo.Bar`.
+    var syntacticQualifiedTypeContext: TypeSyntax? {
+        if let ext = self.as(ExtensionDeclSyntax.self) {
+            // Don't handle nested 'extension' cases - they are invalid anyway.
+            return ext.extendedType.trimmed
+        }
+
+        let base = self.parent?.syntacticQualifiedTypeContext
+        if let named = self.asProtocol((any NamedDeclSyntax).self) {
+            if let base = base {
+                return TypeSyntax(MemberTypeSyntax(baseType: base, name: named.name.trimmed))
+            }
+            return TypeSyntax(IdentifierTypeSyntax(name: named.name.trimmed))
+        }
+        return base
+    }
+}
+
+func firstEnumDecl(in node: some SyntaxProtocol) -> EnumDeclSyntax? {
+    if let e = node.as(EnumDeclSyntax.self) {
+        return e
+    }
+    for child in node.children(viewMode: .all) {
+        if let e = firstEnumDecl(in: child) {
+            return e
+        }
+    }
+    return nil
+}
+
+extension MacroExpansionContext where Self == BasicMacroExpansionContext {
+
+    static func basic(decl: some SyntaxProtocol, in source: SourceFileSyntax) -> BasicMacroExpansionContext {
+        BasicMacroExpansionContext(
+            lexicalContext: decl.allMacroLexicalContexts(),
+            sourceFiles: [source: .init(moduleName: "TestModule", fullFilePath: "Test.swift")]
+        )
     }
 }

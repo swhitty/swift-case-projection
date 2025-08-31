@@ -43,27 +43,18 @@ enum CaseProjectionMacro: ExtensionMacro {
         in context: some MacroExpansionContext
     ) throws -> [ExtensionDeclSyntax] {
 
-        guard let typeDecl = TypeDecl.make(from: declaration, providingExtensionsOf: type) else {
-            throw Invalid("Can only be applied to enum")
-        }
-
-        let accessControl = AccessControl.make(attachedTo: declaration, in: context) ?? .internal
-        let memberList = declaration.memberBlock.members
-
-        let cases = try memberList.compactMap { member -> CaseDecl? in
-            try CaseDecl.make(from: member, accessControl: accessControl)
-        }
+        let enumDecl = try EnumDecl.make(from: declaration, providingExtensionsOf: type, in: context)
 
         let casesDecl = try ExtensionDeclSyntax(
             #"""
-            extension \#(type.trimmed): CaseProjecting {
-            \#(raw: accessControl.syntax)struct Cases: CaseProjection {
-            \#(raw: cases.map(\.projectionSyntax).joined(separator: "\n\n"))
+            extension \#(raw: enumDecl.fullyQualifiedName): CaseProjecting {
+            \#(raw: enumDecl.accessControl.syntax)struct Cases: CaseProjection {
+            \#(raw: enumDecl.cases.map { $0.makeProjectionSyntax(accessControl: enumDecl.accessControl) }.joined(separator: "\n\n"))
             
-            \#(raw: accessControl.syntax)init(_ base: \#(raw: typeDecl.fullyQualifiedName)?) {
+            \#(raw: enumDecl.accessControl.syntax)init(_ base: \#(raw: enumDecl.fullyQualifiedName)?) {
                 self.base = base
             }
-            \#(raw: accessControl.syntax)var base: \#(raw: typeDecl.fullyQualifiedName)?
+            \#(raw: enumDecl.accessControl.syntax)var base: \#(raw: enumDecl.fullyQualifiedName)?
             }
             }
             """#
@@ -72,31 +63,5 @@ enum CaseProjectionMacro: ExtensionMacro {
         return [
             casesDecl
         ]
-    }
-}
-
-struct TypeDecl {
-    var name: String
-    var fullyQualifiedName: String
-    var accessControl: AccessControl
-
-    static func make(from syntax: some DeclGroupSyntax, providingExtensionsOf type: some TypeSyntaxProtocol) -> Self? {
-        guard let enumDecl = syntax.as(EnumDeclSyntax.self) else {
-            return nil
-        }
-        let accessControl = syntax.modifiers.compactMap(AccessControl.make).first
-        return TypeDecl(
-            name: enumDecl.name.text,
-            fullyQualifiedName: TypeSyntax(type.trimmed).description,
-            accessControl: accessControl ?? .internal
-        )
-    }
-}
-
-private struct Invalid: Error, CustomStringConvertible {
-    var description: String
-
-    init(_ message: String) {
-        self.description = message
     }
 }
