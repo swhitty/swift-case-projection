@@ -147,11 +147,19 @@ item.isCase(barPath)  // false
 
 ## SwiftUI Bindings
 
-Optional enums can be projected into SwiftUI bindings, making it easy to drive view presentation from associated values.
+Project optional enums into SwiftUI bindings to drive presentation from associated values.
 
 ```swift
-.sheet(item: $viewModel.item.unwrapping(case: \.baz)) {
-    BazView(id: $0)
+.sheet(item: $viewModel.item.unwrapping(case: \.baz)) { id in
+    BazView(id: id)
+}
+```
+
+Prefer stricter semantics? Use `.guarded(case:)` to allow writes only when the enum is already in that case; otherwise, assignments are ignored.
+
+```swift
+.sheet(item: $viewModel.item.guarded(case: \.baz)) { id in
+    BazView(id: id)
 }
 ```
 
