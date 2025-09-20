@@ -46,8 +46,31 @@ public protocol CaseProjection {
 
 public extension CaseProjecting {
 
-    func isCase<T>(_ kp: KeyPath<Cases, T?>) -> Bool {
+    func `is`<T>(case kp: KeyPath<Cases, T?>) -> Bool {
         Cases(self)[keyPath: kp] != nil
+    }
+
+    func value<T>(case kp: KeyPath<Cases, T?>) -> T? {
+        Cases(self)[keyPath: kp]
+    }
+
+    mutating func set<T>(case kp: WritableKeyPath<Cases, T?>, to value: T) {
+        self = Self.make(case: kp, value: value)
+    }
+
+    mutating func set(case kp: WritableKeyPath<Cases, Void?>) {
+        self = Self.make(case: kp)
+    }
+
+    @discardableResult
+    mutating func modify<Value, R>(
+        case kp: WritableKeyPath<Cases, Value?>,
+        _ body: (inout Value) throws -> R
+    ) rethrows -> R? {
+        guard var v = value(case: kp) else { return nil }
+        let result = try body(&v)
+        set(case: kp, to: v)
+        return result
     }
 
     subscript<T>(case kp: KeyPath<Cases, T?>) -> T? {
@@ -55,12 +78,39 @@ public extension CaseProjecting {
             Cases(self)[keyPath: kp]
         }
     }
+
+    static func make<Value>(
+        case kp: WritableKeyPath<Cases, Value?>,
+        value: Value
+    ) -> Self {
+        var cases = Cases(nil)
+        cases[keyPath: kp] = value
+        return cases.base!
+    }
+
+    static func make(
+        case kp: WritableKeyPath<Cases, Void?>
+    ) -> Self {
+        var cases = Cases(nil)
+        cases[keyPath: kp] = ()
+        return cases.base!
+    }
 }
 
 public extension Optional where Wrapped: CaseProjecting {
 
-    func isCase<T>(_ kp: KeyPath<Wrapped.Cases, T?>) -> Bool {
+    func `is`<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> Bool {
         Wrapped.Cases(self)[keyPath: kp] != nil
+    }
+
+    func value<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {
+        Wrapped.Cases(self)[keyPath: kp]
+    }
+
+    mutating func set<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>, to value: T?) {
+        var cases = Wrapped.Cases(self)
+        cases[keyPath: kp] = value
+        self = cases.base
     }
 
     subscript<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {

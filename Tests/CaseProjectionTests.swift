@@ -37,15 +37,40 @@ import Testing
 struct CaseProjectionTests {
 
     @Test
-    func projectedCase() {
-        #expect(Item.foo.isCase(\.foo))
-        #expect(Item.bar(b: 1).isCase(\.bar))
-        #expect(Item.baz("fish", true, c: 5).isCase(\.baz))
+    func isCase() {
+        #expect(Item.foo.is(case: \.foo))
+        #expect(Item.bar(b: 1).is(case: \.bar))
+        #expect(Item.baz("fish", true, c: 5).is(case: \.baz))
     }
 
+    @Test
+    func set() {
+        var item: Item = .foo
+
+        #expect(item.value(case: \.foo) != nil)
+        #expect(item.value(case: \.bar) == nil)
+
+        item.set(case: \.bar, to: 3)
+        #expect(item.value(case: \.foo) == nil)
+        #expect(item.value(case: \.bar) == 3)
+
+        item.set(case: \.foo, to: ())
+        #expect(item.value(case: \.foo) != nil)
+        #expect(item.value(case: \.bar) == nil)
+    }
 
     @Test
-    func readonly() {
+    func modify() {
+        var item: Item = .bar(b: 5)
+
+        item.modify(case: \.bar) {
+            $0 += 100
+        }
+        #expect(item[case: \.bar] == 105)
+    }
+
+    @Test
+    func readonly_subscript() {
         var item: Item = .foo
 
         #expect(item[case: \.foo] != nil)
@@ -57,38 +82,74 @@ struct CaseProjectionTests {
     }
 
     @Test
-    func writeable() {
+    func set_value() {
+        var item: Item?
+
+        #expect(item.value(case: \.foo) == nil)
+        #expect(item.value(case: \.bar) == nil)
+
+        item.set(case: \.bar, to: 3)
+        #expect(item.value(case: \.foo) == nil)
+        #expect(item.value(case: \.bar) == 3)
+
+        item.set(case: \.foo, to: nil)
+        #expect(item.value(case: \.foo) == nil)
+        #expect(item.value(case: \.bar) == 3)
+
+        item.set(case: \.bar, to: nil)
+        #expect(item.value(case: \.foo) == nil)
+        #expect(item.value(case: \.bar) == nil)
+    }
+
+    @Test
+    func writeable_subscript() {
         var item: Item?
 
         #expect(item[case: \.foo] == nil)
         #expect(item[case: \.bar] == nil)
 
         item[case: \.foo] = ()
+        #expect(item.is(case: \.foo))
+        #expect(!item.is(case: \.bar))
         #expect(item[case: \.foo] != nil)
         #expect(item[case: \.bar] == nil)
 
         item[case: \.bar] = 10
+        #expect(!item.is(case: \.foo))
+        #expect(item.is(case: \.bar))
         #expect(item[case: \.foo] == nil)
         #expect(item[case: \.bar] == 10)
 
         item[case: \.foo] = nil
+        #expect(!item.is(case: \.foo))
+        #expect(item.is(case: \.bar))
         #expect(item[case: \.foo] == nil)
         #expect(item[case: \.bar] == 10)
 
         item[case: \.bar] = nil
+        #expect(!item.is(case: \.foo))
+        #expect(!item.is(case: \.bar))
         #expect(item[case: \.foo] == nil)
         #expect(item[case: \.bar] == nil)
+    }
+
+    @Test
+    func make() {
+        var item = Item.make(case: \.bar, value: 10)
+        #expect(item[case: \.bar] == 10)
+
+        item = Item.make(case: \.foo)
+        #expect(item == .foo)
     }
 }
 
 @CaseProjection
-public enum Item {
+public enum Item: Equatable {
     case foo
     case bar(b: Int)
     case baz(_ s: String, Bool, c: Int)
     case zing(_ b: Float)
 }
-
 
 public enum Namespace { }
 
@@ -100,4 +161,3 @@ public extension Namespace {
         case chips(Bool)
     }
 }
-

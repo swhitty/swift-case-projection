@@ -48,7 +48,7 @@ public extension Binding {
         Binding<R?> {
             wrappedValue[case: kp]
         } set: {
-            if wrappedValue?.isCase(kp) == true {
+            if wrappedValue?.is(case: kp) == true {
                 wrappedValue[case: kp] = $0
             }
         }

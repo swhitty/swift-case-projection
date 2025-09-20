@@ -16,7 +16,7 @@ A Swift macro for enums that generates **case projections**, providing type-safe
 Add **swift-case-projection** with Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/swhitty/swift-case-projection.git", from: "0.1.0")
+.package(url: "https://github.com/swhitty/swift-case-projection.git", from: "0.3.0")
 ```
 
 Then add `"swift-case-projection"` as a dependency in your target.
@@ -25,7 +25,7 @@ Then add `"swift-case-projection"` as a dependency in your target.
 
 ## Example
 
-Annotate your enum with `@CaseProjection` to enable projections:
+Annotate with `@CaseProjection` to project a view of an enum with a `KeyPath` for every case:
 
 ```swift
 import CaseProjection
@@ -35,39 +35,56 @@ enum Item {
     case foo
     case bar(String)
 }
+
+extension Item {
+    struct Cases {
+        var foo: Void { get set }
+        var bar: String { get set }
+    }
+}
 ```
 
 ### Case Checking
 
+These key paths can then be used to check if the enum is currenty in a particular case:
+
 ```swift
 var item: Item = .foo
 
-item.isCase(\.foo)   // true
-item.isCase(\.bar)   // false
+item.is(case: \.foo)       // true
+item.is(case: \.bar)       // false
 ```
 
 ### Accessing Associated Values
 
-You can read associated values from each case using the `case:` subscript:
+Read associated values from each case:
 
 ```swift
 item = .bar("Fish")
 
-item[case: \.bar]    // "Fish"
-item[case: \.foo]    // nil
+item.value(case: \.bar)    // "Fish"
+item.value(case: \.foo)    // nil
 ```
 
-### Writable Subscript for Optionals
-
-When the enum is **optional**, you can set or clear cases directly:
+Write associated values updating the underlying enum case:
 
 ```swift
-var item: Item?
-
-item[case: \.bar] = "Chips"
+item.set(case: \.bar, to: "Chips")
 item == .bar("Chips")
 
-item[case: \.bar] = nil
+item.set(case: \.foo)
+item == .foo
+```
+
+When the enum is **optional**, the active case can be been cleared by setting `nil`
+
+```swift
+var item: Item? = .foo
+
+item.set(case: \.bar, to: nil)
+item == .foo
+
+item.set(case: \.foo, to: nil)
 item == nil
 ```
 
@@ -76,10 +93,51 @@ Setting `nil` on an inactive case has no effect:
 ```swift
 item = .foo
 
-item[case: \.bar] = nil   // still .foo
+item.set(case: \.bar, to: nil)  // still .foo
 item == .foo
 
-item[case: \.foo] = nil
+item.set(case: \.foo, to: nil)
+item == nil
+```
+
+Modify associated values in place:
+
+```swift
+var item = Item.bar("Fish")
+
+item.modify(case: \.bar) {
+    $0 = $0.uppercased()
+}
+item == .bar("FISH")
+```
+
+Construct a new instance of a case embedding its associated value:
+
+```
+let item = Item.make(case: \.bar, value: "Mushy Peas")
+item == .bar("Mushy Peas")
+```
+
+### Subscript
+
+A Readonly subscript also provides access to the associated value:
+
+```swift
+var item: Item = .bar("Fish")
+
+item[case: \.bar]          // "Fish"
+item[case: \.foo]          // nil
+```
+
+When the enum is **optional**, a read-write subscript can be used to set and clear associated values:
+
+```swift
+var item: Item?
+
+item[case: \.bar] = "Chips"
+item == .bar("Chips")
+
+item[case: \.bar] = nil
 item == nil
 ```
 
@@ -138,8 +196,8 @@ let fooPath = \Item.Cases.foo
 let barPath = \Item.Cases.bar
 
 var item: Item = .foo
-item.isCase(fooPath)  // true
-item.isCase(barPath)  // false
+item.is(case: fooPath)  // true
+item.is(case: barPath)  // false
 ```
 
 ---
