@@ -173,6 +173,12 @@ extension CaseDecl {
             }
             """
     }
+
+    func makeKeyPathSyntax(accessControl: AccessControl, root: String) -> String {
+        return """
+            \(accessControl.syntax)static var \(name): WritableKeyPath<\(root).CaseView, \(projectionType)> { \\.\(name) }
+            """
+    }
 }
 
 extension [CaseDecl.AssociatedType] {

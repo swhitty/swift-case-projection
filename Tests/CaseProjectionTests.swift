@@ -161,3 +161,13 @@ public extension Namespace {
         case chips(Bool)
     }
 }
+
+@CaseProjection
+enum Animal {
+    case cat(Cat)
+}
+
+struct Cat {
+    var age: Int
+    var name: String?
+}

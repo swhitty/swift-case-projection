@@ -37,16 +37,21 @@ enum Item {
 }
 
 extension Item {
-    struct Cases {
-        var foo: Void { get set }
-        var bar: String { get set }
+    struct CaseView {
+        var foo: Void? { get set }
+        var bar: String? { get set }
     }
+    struct Cases {
+        static var foo: WritableKeyPath<Item.CaseView, Void?> { \.foo }
+        static var bar: WritableKeyPath<Item.CaseView, String?> { \.bar }   
+    }
+  }
 }
 ```
 
 ### Case Checking
 
-These key paths can then be used to check if the enum is currenty in a particular case:
+These key paths can then be used to check if the enum is currently in a particular case:
 
 ```swift
 var item: Item = .foo
@@ -76,7 +81,7 @@ item.set(case: \.foo)
 item == .foo
 ```
 
-When the enum is **optional**, the active case can be been cleared by setting `nil`
+When the enum is **optional**, the active case can be cleared by setting `nil`
 
 ```swift
 var item: Item? = .foo
@@ -149,10 +154,10 @@ Expanding the macro reveals the projected view of the enum with a mutable proper
 
 ```swift
 extension Item: CaseProjecting {
-    struct Cases: CaseProjection {
-        var base: Item
+    struct CaseView: CaseProjection {
+        var base: Item?
         
-        init(_ base: Item) {
+        init(_ base: Item?) {
             self.base = base
         }
 
@@ -186,18 +191,43 @@ extension Item: CaseProjecting {
             }
         }
     }
+    
+    struct Cases {
+        static var foo: WritableKeyPath<Item.CaseView, Void?> { \.foo }
+        static var bar: WritableKeyPath<Item.CaseView, String?> { \.bar }   
+    }
 }
 ```
 
-When using case key paths like `item[case: \.foo]` the type is rooted in this `Cases` projection.
+Each method with a `case:` parameter accepts `CaseViewPath<Root, Value?>. Static member lookup is available for all cases:
 
 ```
-let fooPath = \Item.Cases.foo
-let barPath = \Item.Cases.bar
+let fooPath: CaseViewPath<Item, Void?> = \.foo
+let barPath: CaseViewPath<Item, String?> = \.bar
+```
+
+`CaseViewPath` is a generic typealias for the underlying keypath preventing chaining into associated values:
+
+```swift
+typealias CaseViewPath<Root: CaseProjecting, Value> = KeyPath<Root.Cases.Type, WritableKeyPath<Root.CaseView, Value>>
+```
+
+```swift
+item[case: \.bar?.count] ❌ Cannot convert value of type 'KeyPath...
+```
+
+Instances of these key paths can be used in all of the api to query and update the enum:
+
+```
+let fooPath: CaseViewPath<Item, Void?> = \.foo
+let barPath = \Item.Cases.Type.bar
 
 var item: Item = .foo
 item.is(case: fooPath)  // true
 item.is(case: barPath)  // false
+
+let another = Item.make(case: barPath, value: "Fish")
+another == .bar("Fish")
 ```
 
 ---

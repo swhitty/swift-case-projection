@@ -29,42 +29,66 @@
 //  SOFTWARE.
 //
 
-@attached(extension, conformances: CaseProjecting, names: named(cases), named(isCase), named(Cases))
+@attached(extension, conformances: CaseProjecting, names: named(cases), named(CaseView), named(Cases))
 public macro CaseProjection() = #externalMacro(module: "MacroPlugin", type: "CaseProjectionMacro")
 
 public protocol CaseProjecting {
-    associatedtype Cases: CaseProjection where Cases.Base == Self
+    associatedtype CaseView: CaseProjection where CaseView.Base == Self
+    associatedtype Cases
 }
 
 public protocol CaseProjection {
-    associatedtype Base
+    associatedtype Base: CaseProjecting where Base.CaseView == Self
 
     init(_ base: Base?)
 
     var base: Base? { get set }
 }
 
+public struct Case<Root: CaseProjecting, Value> {
+    public let keyPath: WritableKeyPath<Root.CaseView, Value>
+
+    public init(keyPath: WritableKeyPath<Root.CaseView, Value>) {
+        self.keyPath = keyPath
+    }
+}
+
+public typealias CaseViewPath<Root: CaseProjecting, Value> = KeyPath<Root.Cases.Type, WritableKeyPath<Root.CaseView, Value>>
+
+public extension CaseProjection {
+
+    subscript<T>(case kp: CaseViewPath<Base, T?>) -> T? {
+        get {
+            self[keyPath: Base.Cases.self[keyPath: kp]]
+        }
+        set {
+            self[keyPath: Base.Cases.self[keyPath: kp]] = newValue
+        }
+    }
+}
+
+
 public extension CaseProjecting {
 
-    func `is`<T>(case kp: KeyPath<Cases, T?>) -> Bool {
-        Cases(self)[keyPath: kp] != nil
+    func `is`<T>(case kp: CaseViewPath<Self, T?>) -> Bool {
+        CaseView(self)[case: kp] != nil
     }
 
-    func value<T>(case kp: KeyPath<Cases, T?>) -> T? {
-        Cases(self)[keyPath: kp]
+    func value<T>(case kp: CaseViewPath<Self, T?>) -> T? {
+        CaseView(self)[case: kp]
     }
 
-    mutating func set<T>(case kp: WritableKeyPath<Cases, T?>, to value: T) {
+    mutating func set<T>(case kp: CaseViewPath<Self, T?>, to value: T) {
         self = Self.make(case: kp, value: value)
     }
 
-    mutating func set(case kp: WritableKeyPath<Cases, Void?>) {
+    mutating func set(case kp: CaseViewPath<Self, Void?>) {
         self = Self.make(case: kp)
     }
 
     @discardableResult
     mutating func modify<Value, R>(
-        case kp: WritableKeyPath<Cases, Value?>,
+        case kp: CaseViewPath<Self, Value?>,
         _ body: (inout Value) throws -> R
     ) rethrows -> R? {
         guard var v = value(case: kp) else { return nil }
@@ -73,59 +97,53 @@ public extension CaseProjecting {
         return result
     }
 
-    subscript<T>(case kp: KeyPath<Cases, T?>) -> T? {
+    subscript<T>(case kp: CaseViewPath<Self, T?>) -> T? {
         get {
-            Cases(self)[keyPath: kp]
+            CaseView(self)[case: kp]
         }
     }
 
     static func make<Value>(
-        case kp: WritableKeyPath<Cases, Value?>,
+        case kp: CaseViewPath<Self, Value?>,
         value: Value
     ) -> Self {
-        var cases = Cases(nil)
-        cases[keyPath: kp] = value
-        return cases.base!
+        var view = CaseView(nil)
+        view[case: kp] = value
+        return view.base!
     }
 
     static func make(
-        case kp: WritableKeyPath<Cases, Void?>
+        case kp: CaseViewPath<Self, Void?>
     ) -> Self {
-        var cases = Cases(nil)
-        cases[keyPath: kp] = ()
-        return cases.base!
+        var view = CaseView(nil)
+        view[case: kp] = ()
+        return view.base!
     }
 }
 
 public extension Optional where Wrapped: CaseProjecting {
 
-    func `is`<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> Bool {
-        Wrapped.Cases(self)[keyPath: kp] != nil
+    func `is`<T>(case kp: CaseViewPath<Wrapped, T?>) -> Bool {
+        Wrapped.CaseView(self)[case: kp] != nil
     }
 
-    func value<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {
-        Wrapped.Cases(self)[keyPath: kp]
+    func value<T>(case kp: CaseViewPath<Wrapped, T?>) -> T? {
+        Wrapped.CaseView(self)[case: kp]
     }
 
-    mutating func set<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>, to value: T?) {
-        var cases = Wrapped.Cases(self)
-        cases[keyPath: kp] = value
+    mutating func set<T>(case kp: CaseViewPath<Wrapped, T?>, to value: T?) {
+        var cases = Wrapped.CaseView(self)
+        cases[case: kp] = value
         self = cases.base
     }
 
-    subscript<T>(case kp: KeyPath<Wrapped.Cases, T?>) -> T? {
+    subscript<T>(case kp: CaseViewPath<Wrapped, T?>) -> T? {
         get {
-            Wrapped.Cases(self)[keyPath: kp]
-        }
-    }
-
-    subscript<T>(case kp: WritableKeyPath<Wrapped.Cases, T?>) -> T? {
-        get {
-            Wrapped.Cases(self)[keyPath: kp]
+            Wrapped.CaseView(self)[case: kp]
         }
         set {
-            var cases = Wrapped.Cases(self)
-            cases[keyPath: kp] = newValue
+            var cases = Wrapped.CaseView(self)
+            cases[case: kp] = newValue
             self = cases.base
         }
     }

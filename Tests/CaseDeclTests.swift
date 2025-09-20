@@ -188,7 +188,7 @@ struct CaseProjectionMacroTests {
             }
 
             extension Item: CaseProjecting {
-                struct Cases: CaseProjection {
+                struct CaseView: CaseProjection {
                     var foo: String? {
                         get {
                             guard case let .foo(p0)? = base else {
@@ -209,6 +209,12 @@ struct CaseProjectionMacroTests {
                         self.base = base
                     }
                     var base: Item?
+                }
+            
+                struct Cases {
+                    static var foo: WritableKeyPath<Item.CaseView, String?> {
+                        \\.foo
+                    }
                 }
             }
             """,

@@ -36,7 +36,7 @@ import SwiftUI
 @MainActor
 public extension Binding {
 
-    func unwrapping<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<R?> where Wrapped: CaseProjecting, Value == Wrapped? {
+    func unwrapping<Wrapped, R>(case kp: CaseViewPath<Wrapped, R?>) -> Binding<R?> where Wrapped: CaseProjecting, Value == Wrapped? {
         Binding<R?> {
             wrappedValue[case: kp]
         } set: {
@@ -44,17 +44,17 @@ public extension Binding {
         }
     }
 
-    func guarded<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<R?> where Wrapped: CaseProjecting, Value == Wrapped? {
+    func guarded<Wrapped, R>(case kp: CaseViewPath<Wrapped, R?>) -> Binding<R?> where Wrapped: CaseProjecting, Value == Wrapped? {
         Binding<R?> {
             wrappedValue[case: kp]
         } set: {
-            if wrappedValue?.is(case: kp) == true {
+           if wrappedValue?.is(case: kp) == true {
                 wrappedValue[case: kp] = $0
             }
         }
     }
 
-    func isPresent<Wrapped, R>(case kp: WritableKeyPath<Wrapped.Cases, R?>) -> Binding<Bool> where Wrapped: CaseProjecting, Value == Wrapped? {
+    func isPresent<Wrapped, R>(case kp: CaseViewPath<Wrapped, R?>) -> Binding<Bool> where Wrapped: CaseProjecting, Value == Wrapped? {
         Binding<Bool> {
             wrappedValue[case: kp] != nil
         } set: {

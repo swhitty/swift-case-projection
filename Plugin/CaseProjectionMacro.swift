@@ -48,13 +48,17 @@ enum CaseProjectionMacro: ExtensionMacro {
         let casesDecl = try ExtensionDeclSyntax(
             #"""
             extension \#(raw: enumDecl.fullyQualifiedName): CaseProjecting {
-            \#(raw: enumDecl.accessControl.syntax)struct Cases: CaseProjection {
+            \#(raw: enumDecl.accessControl.syntax)struct CaseView: CaseProjection {
             \#(raw: enumDecl.cases.map { $0.makeProjectionSyntax(accessControl: enumDecl.accessControl) }.joined(separator: "\n\n"))
             
             \#(raw: enumDecl.accessControl.syntax)init(_ base: \#(raw: enumDecl.fullyQualifiedName)?) {
                 self.base = base
             }
             \#(raw: enumDecl.accessControl.syntax)var base: \#(raw: enumDecl.fullyQualifiedName)?
+            }
+            
+            \#(raw: enumDecl.accessControl.syntax)struct Cases {
+            \#(raw: enumDecl.cases.map { $0.makeKeyPathSyntax(accessControl: enumDecl.accessControl, root: enumDecl.fullyQualifiedName) }.joined(separator: "\n"))
             }
             }
             """#
