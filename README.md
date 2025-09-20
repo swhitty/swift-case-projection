@@ -60,7 +60,7 @@ item.is(case: \.foo)       // true
 item.is(case: \.bar)       // false
 ```
 
-### Accessing Associated Values
+### Associated Values
 
 Read associated values from each case:
 
@@ -130,8 +130,8 @@ A Readonly subscript also provides access to the associated value:
 ```swift
 var item: Item = .bar("Fish")
 
-item[case: \.bar]          // "Fish"
-item[case: \.foo]          // nil
+item[case: \.bar]   // "Fish"
+item[case: \.foo]   // nil
 ```
 
 When the enum is **optional**, a read-write subscript can be used to set and clear associated values:
